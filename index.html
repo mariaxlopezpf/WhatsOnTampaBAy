@@ -186,6 +186,56 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
   .row .side{grid-column:2;flex-direction:row;align-items:center}
 }
 @media (max-width:480px){ .wboard{grid-template-columns:1fr} }
+.daypick,.mobile-only,#toTop{display:none}
+@media (max-width:760px){
+  .wrap{grid-template-columns:minmax(0,1fr);padding:18px 14px 56px;gap:26px}
+  .wrap>*{min-width:0}
+  header{gap:12px}
+  h1{font-size:34px}
+  .lede{font-size:15px}
+  .tabs{display:flex;width:100%}
+  .tab{flex:1;padding:8px 6px;font-size:14px;text-align:center}
+  .tab .lg{display:none}
+  .filters{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin:0 -14px;padding:2px 14px}
+  .filters::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;font-size:13.5px;padding:6px 11px}
+  .toggles{gap:6px 14px;font-size:13.5px}
+  .monthbar .m{font-size:21px}
+  .count{flex-basis:100%;font-size:13.5px}
+  /* weekly: one day at a time */
+  .daypick{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -14px 4px;padding:2px 14px}
+  .daypick::-webkit-scrollbar{display:none}
+  .daypick button{flex:1 0 auto;min-width:46px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:6px 8px;font:600 13px var(--body);display:grid;justify-items:center;gap:1px;cursor:pointer}
+  .daypick button small{font:500 11px var(--body);color:var(--muted)}
+  .daypick button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+  .daypick button.on small{color:var(--bg);opacity:.8}
+  #wboard .wcol{display:none}
+  #wboard .wcol.on{display:grid}
+  #wboard .wcol h3{display:none}
+  .wcard{padding:10px 12px}
+  .wcard b{font-size:15px}
+  .wcard span{font-size:13.5px}
+  /* agenda */
+  .dayblock{grid-template-columns:44px 1fr;gap:10px;padding:12px 0}
+  .dayblock .date b{font-size:22px}
+  .row{gap:8px;padding:9px 10px 9px 0;border-radius:9px}
+  .row .meta{font-size:13.5px}
+  .row .side .tag.ok{display:none}
+  .row .side{gap:10px}
+  #agenda:not(.showpast) .dayblock.past{display:none}
+  .mobile-only{display:block}
+  .pastbtn{width:100%;margin-bottom:6px}
+  /* groups collapse */
+  #groups{grid-template-columns:1fr!important}
+  #groupsWrap:not(.open) #groups{display:none}
+  /* detail as bottom sheet */
+  .scrim{align-items:flex-end;padding:0}
+  .card{border-radius:18px 18px 0 0;max-height:86vh;padding:18px 18px calc(18px + env(safe-area-inset-bottom))}
+  .card h3{font-size:21px}
+  .actions .btn{flex:1 1 45%;justify-content:center}
+  #toTop{position:fixed;right:14px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:8;width:44px;height:44px;border-radius:999px;border:none;background:var(--ink);color:var(--bg);font-size:18px;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
+  #toTop.show{display:block}
+}
 @media (prefers-reduced-motion:no-preference){
   .ev,.row{transition:transform .12s ease}
   .ev:hover,.row:hover{transform:translateX(2px)}
@@ -218,6 +268,7 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
   <section class="weekly" aria-labelledby="wTitle">
     <h2 id="wTitle">Every week</h2>
     <p class="sub">Standing run clubs, sunrise workouts and networking groups. Most are free and drop-in; check the RSVP link before holiday weeks.</p>
+    <div class="daypick" id="dayPick" role="tablist" aria-label="Day of the week"></div>
     <div class="wboard" id="wboard"></div>
   </section>
 
@@ -290,9 +341,10 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
     <div class="queue" id="pubList"></div>
   </section>
 
-  <section class="weekly" aria-labelledby="gTitle">
+  <section class="weekly" id="groupsWrap" aria-labelledby="gTitle">
     <h2 id="gTitle">Groups you follow</h2>
     <p class="sub">These crews post dates on Instagram first, often only a week or two out. What's below is what could be confirmed outside Instagram; tap through for this month's drops.</p>
+    <button type="button" class="btn mobile-only" id="groupsBtn" aria-expanded="false">Show groups ▾</button>
     <div class="wboard" id="groups" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div>
   </section>
 
@@ -721,7 +773,7 @@ function buildAreaTabs(){
   const t = document.getElementById("areaTabs"); t.innerHTML = "";
   for (const [k,v] of Object.entries(AREAS)){
     const b = document.createElement("button"); b.type="button"; b.className="tab"; b.id="a-"+k; b.setAttribute("role","tab");
-    b.textContent = v;
+    if (k==="all"){ b.innerHTML = "All<span class=\"lg\"> locations</span>"; } else b.textContent = v;
     b.onclick = () => { area = k; try { localStorage.setItem("stpete-area", k); } catch {} render(); };
     t.appendChild(b);
   }
@@ -750,12 +802,20 @@ function buildFilters(){
   }
 }
 
+let wkDay = new Date().getDay();
 function renderWeekly(){
   const wb = document.getElementById("wboard");
   wb.innerHTML = "";
+  const dp = document.getElementById("dayPick"); dp.innerHTML = "";
   [1,2,3,4,5,6,0].forEach(dow => {
+    const n = allWeekly().filter(w => w.dow===dow && active.has(w.c) && activePrice.has(priceOf(w)) && inArea(w)).length;
+    const pb = document.createElement("button"); pb.type="button"; pb.setAttribute("role","tab");
+    pb.className = dow===wkDay ? "on" : ""; pb.setAttribute("aria-selected", dow===wkDay);
+    pb.innerHTML = `${DOW[dow].slice(0,3)}<small>${n}</small>`;
+    pb.onclick = () => { wkDay = dow; renderWeekly(); };
+    dp.appendChild(pb);
     const col = document.createElement("div");
-    col.className = "wcol";
+    col.className = "wcol" + (dow===wkDay ? " on" : "");
     col.innerHTML = `<h3>${DOW[dow]}</h3>`;
     const items = allWeekly().filter(w => w.dow===dow && active.has(w.c) && activePrice.has(priceOf(w)) && inArea(w)).sort(sortDay);
     if (!items.length){ col.insertAdjacentHTML("beforeend", `<div class="wempty">Nothing standing</div>`); }
@@ -833,7 +893,7 @@ function render(){
     const list = evs.filter(e => onDay(e,k)).sort(sortDay);
     if (!list.length) continue;
     const blk = document.createElement("div");
-    blk.className="dayblock"; blk.id="day-"+k;
+    blk.className="dayblock" + (k < todayKey ? " past" : ""); blk.id="day-"+k;
     blk.innerHTML = `<div class="date"><small>${parse(k).toLocaleDateString("en-US",{weekday:"short"})}</small><b>${d}</b>${HOLIDAYS[k]?`<small style="color:var(--accent)">${HOLIDAYS[k]}</small>`:""}</div><div class="rows"></div>`;
     const rows = blk.querySelector(".rows");
     list.forEach(e => {
@@ -850,7 +910,22 @@ function render(){
     ag.appendChild(blk);
   }
   if (!ag.children.length) ag.innerHTML = `<p class="lede">No events match these filters. Turn a category back on above.</p>`;
+  const pastN = ag.querySelectorAll(".dayblock.past").length;
+  ag.classList.remove("showpast");
+  if (pastN && pastN < ag.querySelectorAll(".dayblock").length){
+    const pb = document.createElement("button"); pb.type="button"; pb.className="btn mobile-only pastbtn";
+    pb.textContent = `Show ${pastN} earlier day${pastN>1?"s":""} this month`;
+    pb.onclick = () => { ag.classList.add("showpast"); pb.remove(); };
+    ag.prepend(pb);
+  } else if (pastN) ag.classList.add("showpast");
 }
+(function mobileUi(){
+  const gb = document.getElementById("groupsBtn"), gw = document.getElementById("groupsWrap");
+  if (gb) gb.onclick = () => { const o = gw.classList.toggle("open"); gb.setAttribute("aria-expanded", o); gb.textContent = o ? "Hide groups ▴" : "Show groups ▾"; };
+  const tt = document.getElementById("toTop");
+  if (tt){ tt.onclick = () => window.scrollTo({top:0,behavior:"smooth"});
+    addEventListener("scroll", () => tt.classList.toggle("show", scrollY > 1200), {passive:true}); }
+})();
 
 function gcalLink(e){
   const s = e.s.replaceAll("-","");
@@ -1117,5 +1192,6 @@ renderGroups();
 render();
 initDb();
 </script>
+<button type="button" id="toTop" aria-label="Back to top">↑</button>
 </body>
 </html>
