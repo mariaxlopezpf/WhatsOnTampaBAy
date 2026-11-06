@@ -245,7 +245,7 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
   .mcal{display:block}
   .wrap>*{order:5}
   .wrap>header{order:0}
-  .wrap>.news{order:1}
+  .wrap>.news{order:9}
   .wrap>.agenda{order:2}
   .wrap>section[aria-labelledby="wTitle"]{order:3}
   .mobile-only{display:block}
@@ -283,7 +283,7 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
       <button class="navbtn" id="next" aria-label="Next month">&#8594;</button>
       <span class="count" id="count"></span>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn primary" href="https://tally.so/r/e5Mz6E" target="_blank" rel="noopener">+ Submit an event</a></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><a class="btn primary" href="https://tally.so/r/e5Mz6E" target="_blank" rel="noopener">+ Submit an event</a><a class="btn" id="newsJump" href="#newsletter">✉ Weekly newsletter</a></div>
     <div class="filters" id="filters" role="group" aria-label="Filter by category"></div>
     <div class="filters" id="pfilters" role="group" aria-label="Filter by cost"></div>
     <div class="toggles">
@@ -291,19 +291,6 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
       <label class="toggle" for="weeklyToggle"><input type="checkbox" id="weeklyToggle"> Show weekly meetups on the calendar too</label>
     </div>
   </header>
-
-  <section class="news" id="newsletter" aria-labelledby="nTitle">
-    <div>
-      <h2 id="nTitle">This weekend in Tampa Bay</h2>
-      <p class="sub" style="margin:0">One email every Thursday: the best free workouts, meetups, game nights and things to do across St. Pete, Tampa and Pinellas.</p>
-    </div>
-    <form id="newsForm">
-      <label class="sr" for="nEmail" style="position:absolute;left:-9999px">Email address</label>
-      <input id="nEmail" type="email" placeholder="you@email.com" autocomplete="email" required>
-      <button class="btn primary" id="nBtn" type="submit">Subscribe</button>
-    </form>
-    <p class="hint" id="nHint">Free. Unsubscribe anytime.</p>
-  </section>
 
   <section class="weekly" aria-labelledby="wTitle">
     <h2 id="wTitle">Every week</h2>
@@ -326,7 +313,6 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
     <div class="mcal" id="mcal"></div>
     <div id="agenda"></div>
   </section>
-
 
   <section class="submit" id="submit" aria-labelledby="sTitle">
     <div>
@@ -401,6 +387,19 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
       <li><strong>RSVP</strong> links go to the registration, ticket or signup page. Where a group doesn't take RSVPs, the event says "Just show up." Get Fit St. Pete classes need a free Get Fit membership, which the link covers.</li>
       <li>Events marked <strong>Verify</strong> run on a fixed pattern (first Tuesday, second Saturday) and their November dates were worked out from it.</li>
     </ul>
+  </section>
+
+  <section class="news" id="newsletter" aria-labelledby="nTitle">
+    <div>
+      <h2 id="nTitle">This weekend in Tampa Bay</h2>
+      <p class="sub" style="margin:0">One email every Thursday: the best free workouts, meetups, game nights and things to do across St. Pete, Tampa and Pinellas.</p>
+    </div>
+    <form id="newsForm">
+      <label class="sr" for="nEmail" style="position:absolute;left:-9999px">Email address</label>
+      <input id="nEmail" type="email" placeholder="you@email.com" autocomplete="email" required>
+      <button class="btn primary" id="nBtn" type="submit">Subscribe</button>
+    </form>
+    <p class="hint" id="nHint">Free. Unsubscribe anytime.</p>
   </section>
 </div>
 
@@ -976,6 +975,12 @@ function applySel(){
   wl.textContent = wn ? `+ ${wn} weekly meetup${wn>1?"s":""} every ${DOW[dow]}` : "";
   wl.onclick = () => { wkDay = dow; renderWeekly(); document.getElementById("wTitle").scrollIntoView({behavior:"smooth",block:"start"}); };
 }
+(function newsJump(){
+  const a = document.getElementById("newsJump"); if (!a) return;
+  a.addEventListener("click", ev => { ev.preventDefault();
+    document.getElementById("newsletter").scrollIntoView({behavior:"smooth",block:"center"});
+    const inp = document.getElementById("nEmail"); if (inp && !inp.disabled) setTimeout(()=>inp.focus({preventScroll:true}), 500); });
+})();
 (function mobileUi(){
   const gb = document.getElementById("groupsBtn"), gw = document.getElementById("groupsWrap");
   if (gb) gb.onclick = () => { const o = gw.classList.toggle("open"); gb.setAttribute("aria-expanded", o); gb.textContent = o ? "Hide groups ▴" : "Show groups ▾"; };
