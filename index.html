@@ -186,13 +186,28 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
   .row .side{grid-column:2;flex-direction:row;align-items:center}
 }
 @media (max-width:480px){ .wboard{grid-template-columns:1fr} }
-.daypick,.mobile-only,#toTop{display:none}
+.daypick,.mobile-only,#toTop,.mcal{display:none}
+.mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px}
+.mgrid .dow{font:600 11px var(--body);color:var(--muted);text-align:center;padding:2px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+.mgrid button{border:none;background:transparent;color:var(--ink);border-radius:10px;padding:6px 0 5px;display:grid;justify-items:center;gap:3px;cursor:pointer;font:600 15px var(--body);min-height:44px}
+.mgrid button .dots{display:flex;gap:2px;height:5px}
+.mgrid button .dots i{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.mgrid button.past{color:var(--muted);opacity:.6}
+.mgrid button.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.mgrid button.sel{background:var(--ink);color:var(--bg);opacity:1}
+.mgrid button.sel .dots i{background:var(--bg)}
+.mgrid button:disabled{cursor:default}
+.mday{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:14px 0 2px;flex-wrap:wrap}
+.mday b{font:700 19px var(--display)}
+.mday .lnk{all:unset;cursor:pointer;color:var(--accent);font:600 14px var(--body);text-decoration:underline}
+.mempty{color:var(--muted);font-size:14.5px;margin:6px 0 0}
 @media (max-width:760px){
   .wrap{grid-template-columns:minmax(0,1fr);padding:18px 14px 56px;gap:26px}
   .wrap>*{min-width:0}
   header{gap:12px}
   h1{font-size:34px}
-  .lede{font-size:15px}
+  header .lede{display:none}
+  .toggles{display:none}
   .tabs{display:flex;width:100%}
   .tab{flex:1;padding:8px 6px;font-size:14px;text-align:center}
   .tab .lg{display:none}
@@ -222,9 +237,21 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
   .row .meta{font-size:13.5px}
   .row .side .tag.ok{display:none}
   .row .side{gap:10px}
-  #agenda:not(.showpast) .dayblock.past{display:none}
+  .agenda .legend{display:none}
+  #agenda .dayblock{display:none;border-top:none;padding-top:4px}
+  #agenda .dayblock.sel{display:grid}
+  #agenda .dayblock{grid-template-columns:1fr}
+  #agenda .dayblock .date{display:none}
+  .mcal{display:block}
+  .wrap>*{order:5}
+  .wrap>header{order:0}
+  .wrap>.news{order:1}
+  .wrap>.agenda{order:2}
+  .wrap>section[aria-labelledby="wTitle"]{order:3}
   .mobile-only{display:block}
-  .pastbtn{width:100%;margin-bottom:6px}
+  .news{padding:16px;gap:10px}
+  .news h2{font-size:20px}
+  .news .sub{font-size:14px}
   /* groups collapse */
   #groups{grid-template-columns:1fr!important}
   #groupsWrap:not(.open) #groups{display:none}
@@ -265,6 +292,19 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
     </div>
   </header>
 
+  <section class="news" id="newsletter" aria-labelledby="nTitle">
+    <div>
+      <h2 id="nTitle">This weekend in Tampa Bay</h2>
+      <p class="sub" style="margin:0">One email every Thursday: the best free workouts, meetups, game nights and things to do across St. Pete, Tampa and Pinellas.</p>
+    </div>
+    <form id="newsForm">
+      <label class="sr" for="nEmail" style="position:absolute;left:-9999px">Email address</label>
+      <input id="nEmail" type="email" placeholder="you@email.com" autocomplete="email" required>
+      <button class="btn primary" id="nBtn" type="submit">Subscribe</button>
+    </form>
+    <p class="hint" id="nHint">Free. Unsubscribe anytime.</p>
+  </section>
+
   <section class="weekly" aria-labelledby="wTitle">
     <h2 id="wTitle">Every week</h2>
     <p class="sub">Standing run clubs, sunrise workouts and networking groups. Most are free and drop-in; check the RSVP link before holiday weeks.</p>
@@ -283,21 +323,10 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
       <span><i class="swatch"></i>Date confirmed by organizer or listing</span>
       <span><i class="swatch d"></i>Recurring series, date calculated — confirm before going</span>
     </div>
+    <div class="mcal" id="mcal"></div>
     <div id="agenda"></div>
   </section>
 
-  <section class="news" id="newsletter" aria-labelledby="nTitle">
-    <div>
-      <h2 id="nTitle">This weekend in St. Pete</h2>
-      <p class="sub" style="margin:0">One email every Thursday: the best free workouts, meetups, game nights and things to do across St. Pete, Tampa and Pinellas.</p>
-    </div>
-    <form id="newsForm">
-      <label class="sr" for="nEmail" style="position:absolute;left:-9999px">Email address</label>
-      <input id="nEmail" type="email" placeholder="you@email.com" autocomplete="email" required>
-      <button class="btn primary" id="nBtn" type="submit">Subscribe</button>
-    </form>
-    <p class="hint" id="nHint">Free. Unsubscribe anytime.</p>
-  </section>
 
   <section class="submit" id="submit" aria-labelledby="sTitle">
     <div>
@@ -910,14 +939,42 @@ function render(){
     ag.appendChild(blk);
   }
   if (!ag.children.length) ag.innerHTML = `<p class="lede">No events match these filters. Turn a category back on above.</p>`;
-  const pastN = ag.querySelectorAll(".dayblock.past").length;
-  ag.classList.remove("showpast");
-  if (pastN && pastN < ag.querySelectorAll(".dayblock").length){
-    const pb = document.createElement("button"); pb.type="button"; pb.className="btn mobile-only pastbtn";
-    pb.textContent = `Show ${pastN} earlier day${pastN>1?"s":""} this month`;
-    pb.onclick = () => { ag.classList.add("showpast"); pb.remove(); };
-    ag.prepend(pb);
-  } else if (pastN) ag.classList.add("showpast");
+  renderMcal(y,m,evs,todayKey);
+}
+let selDay = null;
+function renderMcal(y,m,evs,todayKey){
+  const mc = document.getElementById("mcal"); if (!mc) return;
+  const prefix = `${y}-${pad(m+1)}`, days = new Date(y,m+1,0).getDate(), first = new Date(y,m,1).getDay();
+  const counts = {}; for (let d=1; d<=days; d++){ const k=key(y,m,d); counts[k] = evs.filter(e=>onDay(e,k)).length; }
+  if (!selDay || !selDay.startsWith(prefix)){
+    selDay = todayKey.startsWith(prefix) ? todayKey : (Object.keys(counts).find(k=>counts[k]) || key(y,m,1));
+  }
+  mc.innerHTML = `<div class="mgrid" role="grid" aria-label="Pick a day">${["S","M","T","W","T","F","S"].map(d=>`<span class="dow">${d}</span>`).join("")}</div><div class="mday"><b id="mdayLabel"></b><button type="button" class="lnk" id="mweekly"></button></div><p class="mempty hidden" id="mempty"></p>`;
+  const g = mc.querySelector(".mgrid");
+  for (let i=0;i<first;i++) g.appendChild(document.createElement("span"));
+  for (let d=1; d<=days; d++){
+    const k = key(y,m,d), n = counts[k], b = document.createElement("button");
+    b.type="button"; b.dataset.k = k;
+    b.className = (k<todayKey?"past ":"") + (k===todayKey?"today ":"") + (k===selDay?"sel":"");
+    b.setAttribute("aria-label", `${parse(k).toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}, ${n} event${n===1?"":"s"}`);
+    b.innerHTML = `${d}<span class="dots">${"<i></i>".repeat(Math.min(n,3))}</span>`;
+    b.onclick = () => { selDay = k; applySel(); };
+    g.appendChild(b);
+  }
+  applySel();
+}
+function applySel(){
+  document.querySelectorAll(".mgrid button").forEach(b => b.classList.toggle("sel", b.dataset.k===selDay));
+  document.querySelectorAll("#agenda .dayblock").forEach(b => b.classList.toggle("sel", b.id==="day-"+selDay));
+  const dt = parse(selDay), dow = dt.getDay();
+  document.getElementById("mdayLabel").textContent = dt.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+  const has = !!document.getElementById("day-"+selDay);
+  const em = document.getElementById("mempty");
+  em.classList.toggle("hidden", has); em.textContent = has ? "" : "No dated events this day with these filters.";
+  const wn = allWeekly().filter(w => w.dow===dow && active.has(w.c) && activePrice.has(priceOf(w)) && inArea(w)).length;
+  const wl = document.getElementById("mweekly");
+  wl.textContent = wn ? `+ ${wn} weekly meetup${wn>1?"s":""} every ${DOW[dow]}` : "";
+  wl.onclick = () => { wkDay = dow; renderWeekly(); document.getElementById("wTitle").scrollIntoView({behavior:"smooth",block:"start"}); };
 }
 (function mobileUi(){
   const gb = document.getElementById("groupsBtn"), gw = document.getElementById("groupsWrap");
