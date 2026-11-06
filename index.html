@@ -201,6 +201,9 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
 .mday b{font:700 19px var(--display)}
 .mday .lnk{all:unset;cursor:pointer;color:var(--accent);font:600 14px var(--body);text-decoration:underline}
 .mempty{color:var(--muted);font-size:14.5px;margin:6px 0 0}
+.mpick{font:700 17px var(--display);margin:22px 0 8px}
+.mday{margin-top:4px}
+#mhead #mweekly{display:block;margin:2px 0 8px}
 @media (max-width:760px){
   .wrap{grid-template-columns:minmax(0,1fr);padding:18px 14px 56px;gap:26px}
   .wrap>*{min-width:0}
@@ -310,8 +313,9 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;margin:0 0 4px;text
       <span><i class="swatch"></i>Date confirmed by organizer or listing</span>
       <span><i class="swatch d"></i>Recurring series, date calculated — confirm before going</span>
     </div>
-    <div class="mcal" id="mcal"></div>
+    <div class="mcal" id="mhead"></div>
     <div id="agenda"></div>
+    <div class="mcal" id="mcal"></div>
   </section>
 
   <section class="submit" id="submit" aria-labelledby="sTitle">
@@ -948,7 +952,8 @@ function renderMcal(y,m,evs,todayKey){
   if (!selDay || !selDay.startsWith(prefix)){
     selDay = todayKey.startsWith(prefix) ? todayKey : (Object.keys(counts).find(k=>counts[k]) || key(y,m,1));
   }
-  mc.innerHTML = `<div class="mgrid" role="grid" aria-label="Pick a day">${["S","M","T","W","T","F","S"].map(d=>`<span class="dow">${d}</span>`).join("")}</div><div class="mday"><b id="mdayLabel"></b><button type="button" class="lnk" id="mweekly"></button></div><p class="mempty hidden" id="mempty"></p>`;
+  document.getElementById("mhead").innerHTML = `<div class="mday"><b id="mdayLabel"></b><button type="button" class="lnk" id="mchange" onclick="document.getElementById(\'mcal\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">Change day ↓</button></div><button type="button" class="lnk" id="mweekly"></button><p class="mempty hidden" id="mempty"></p>`;
+  mc.innerHTML = `<h3 class="mpick">Pick another day</h3><div class="mgrid" role="grid" aria-label="Pick a day">${["S","M","T","W","T","F","S"].map(d=>`<span class="dow">${d}</span>`).join("")}</div>`;
   const g = mc.querySelector(".mgrid");
   for (let i=0;i<first;i++) g.appendChild(document.createElement("span"));
   for (let d=1; d<=days; d++){
@@ -957,7 +962,7 @@ function renderMcal(y,m,evs,todayKey){
     b.className = (k<todayKey?"past ":"") + (k===todayKey?"today ":"") + (k===selDay?"sel":"");
     b.setAttribute("aria-label", `${parse(k).toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"})}, ${n} event${n===1?"":"s"}`);
     b.innerHTML = `${d}<span class="dots">${"<i></i>".repeat(Math.min(n,3))}</span>`;
-    b.onclick = () => { selDay = k; applySel(); };
+    b.onclick = () => { selDay = k; applySel(); document.getElementById("aTitle").scrollIntoView({behavior:"smooth",block:"start"}); };
     g.appendChild(b);
   }
   applySel();
@@ -966,7 +971,8 @@ function applySel(){
   document.querySelectorAll(".mgrid button").forEach(b => b.classList.toggle("sel", b.dataset.k===selDay));
   document.querySelectorAll("#agenda .dayblock").forEach(b => b.classList.toggle("sel", b.id==="day-"+selDay));
   const dt = parse(selDay), dow = dt.getDay();
-  document.getElementById("mdayLabel").textContent = dt.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
+  const now = new Date(), tk = key(now.getFullYear(), now.getMonth(), now.getDate());
+  document.getElementById("mdayLabel").textContent = (selDay===tk ? "Today · " : "") + dt.toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"});
   const has = !!document.getElementById("day-"+selDay);
   const em = document.getElementById("mempty");
   em.classList.toggle("hidden", has); em.textContent = has ? "" : "No dated events this day with these filters.";
